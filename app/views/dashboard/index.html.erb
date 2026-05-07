@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Factory 3D</title>
+</head>
+
+<body style="margin:0; overflow:hidden;">
+
+<div id="scene-container"></div>
+
+<div id="popup"
+     style="
+     display:none;
+       position:absolute;
+       background:white;
+       padding:10px;
+       border-radius:10px;
+       transform: translate(-50%, -120%);
+       pointer-events:none;
+       box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+     ">
+</div>
+
+<script type="module">
+    import * as THREE from "https://esm.sh/three@0.158.0";
+    import { OrbitControls } from "https://esm.sh/three@0.158.0/examples/jsm/controls/OrbitControls.js";
+
+    console.log("SCENE WORKS");
+
+    // ===== СЦЕНА =====
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf5f5f5);
+
+    // ===== КАМЕРА =====
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+    camera.position.set(5, 5, 5);
+
+    // ===== РЕНДЕР =====
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    document.getElementById("scene-container")
+      .appendChild(renderer.domElement);
+
+    // ===== КОНТРОЛЫ =====
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 2;
+    controls.maxDistance = 20;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.target.set(0, 0, 0);
+
+    // ===== СВЕТ =====
+    scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+    // ===== ПОЛ =====
+    scene.add(new THREE.GridHelper(10, 10));
+
+    // ===== СТАНКИ =====
+    const machines = [];
+
+    function createMachine(id, x, y, z, color) {
+        const cube = new THREE.Mesh(
+          new THREE.BoxGeometry(),
+          new THREE.MeshBasicMaterial({ color })
+        );
+
+        cube.position.set(x, y, z);
+        cube.userData = { id };
+
+        scene.add(cube);
+        machines.push(cube);
+    }
+
+    createMachine(1, 0, 0, 0, 0xff6600);
+    createMachine(2, 2, 0, 0, 0x00aa88);
+    createMachine(3, -2, 0, 0, 0x3366ff);
+
+    // ===== КЛИК =====
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener("click", (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(machines);
+
+        if (intersects.length > 0) {
+            const obj = intersects[0].object;
+            loadMachine(obj.userData.id, obj);
+        } else {
+            hidePopup();
+        }
+    });
+
+    // ===== API =====
+    function loadMachine(id, object) {
+        fetch(`/machines/${id}`)
+          .then(res => res.json())
+          .then(data => showPopup(data, object));
+    }
+
+    // ===== POPUP =====
+    function showPopup(data, object) {
+        const popup = document.getElementById("popup");
+
+        popup.innerHTML = `
+    <h3>${data.name}</h3>
+    <p>${data.description}</p>
+  `;
+
+        const vector = object.position.clone().project(camera);
+
+        popup.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
+        popup.style.top = `${(-vector.y * 0.5 + 0.5) * window.innerHeight}px`;
+
+        popup.style.display = "block";
+    }
+
+    function hidePopup() {
+        document.getElementById("popup").style.display = "none";
+    }
+
+    // ===== RESIZE =====
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ===== РЕНДЕР =====
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    animate();
+</script>
+
+</body>
+</html>
