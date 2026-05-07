@@ -6,6 +6,7 @@ class WarehouseItemsController < ApplicationController
   end
 
   def shelf
+    WarehouseSeeder.seed! if WarehouseItem.where(location: "shelf").none?
     render json: WarehouseItem.where(location: "shelf").order(:category, :name)
   end
 
