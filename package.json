@@ -1,5 +1,11 @@
 {
   "dependencies": {
     "three": "^0.183.2"
+  },
+  "scripts": {
+    "build:scene": "esbuild app/javascript/scene.js --bundle --format=esm --outfile=public/scene.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
   }
 }
