@@ -523,7 +523,7 @@ loadMachine(
 
 loadMachine(
     8,
-    "/models/Meshy_AI_Colorful__3D_0506201153_generate.glb",
+    "/models/Meshy_AI_Colorful_Enclosed_3D__0506201153_generate.glb",
     -4,
     0,
     -10,
