@@ -1,0 +1,2 @@
+class WarehouseItem < ApplicationRecord
+end

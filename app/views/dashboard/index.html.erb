@@ -2,155 +2,455 @@
 <html>
 <head>
   <title>Factory 3D</title>
+  <%= csrf_meta_tags %>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+      body {
+          margin: 0;
+          overflow: hidden;
+          font-family: Inter, Arial, sans-serif;
+          background: #181b22;
+      }
+
+      #scene-container {
+          width: 100vw;
+          height: 100vh;
+      }
+
+      .machine-card {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          width: min(380px, calc(100vw - 48px));
+          padding: 18px 18px 16px;
+          border-radius: 18px;
+          background: rgba(12, 16, 22, 0.84);
+          border: 1px solid rgba(255, 138, 0, 0.18);
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+          backdrop-filter: blur(16px);
+          color: #f3f7ff;
+          z-index: 20;
+          display: none;
+      }
+
+      .machine-card.is-visible {
+          display: block;
+      }
+
+      .machine-card__close {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 32px;
+          height: 32px;
+          border: 0;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+          cursor: pointer;
+          font-size: 20px;
+          line-height: 32px;
+      }
+
+      .machine-card__tag {
+          display: inline-block;
+          margin-bottom: 10px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #ffb15d;
+          background: rgba(255, 138, 0, 0.08);
+          border: 1px solid rgba(255, 138, 0, 0.16);
+      }
+
+      .machine-card__title {
+          margin: 0 0 8px;
+          font-size: 22px;
+          line-height: 1.15;
+      }
+
+      .machine-card__status {
+          display: inline-block;
+          margin-bottom: 12px;
+          padding: 5px 10px;
+          border-radius: 999px;
+          font-size: 13px;
+          background: rgba(255, 255, 255, 0.08);
+          color: #d9e6ff;
+      }
+
+      .machine-card__desc {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.55;
+          color: #d1d8e3;
+      }
+
+      .machine-card__meta {
+          margin-top: 12px;
+          font-size: 12px;
+          color: #8e9bb0;
+      }
+
+      .machine-card.is-active {
+          border-color: rgba(0, 255, 170, 0.32);
+      }
+
+      .machine-card.is-service {
+          border-color: rgba(255, 195, 0, 0.32);
+      }
+
+      .machine-card.is-off {
+          border-color: rgba(255, 92, 92, 0.32);
+      }
+
+      .warehouse-card {
+          width: min(560px, calc(100vw - 48px));
+          max-height: calc(100vh - 48px);
+          overflow: auto;
+      }
+
+      .warehouse-content {
+          margin-top: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+      }
+
+      .warehouse-group__title {
+          margin: 0 0 8px;
+          font-size: 14px;
+          color: #ffb15d;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+      }
+
+      .warehouse-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+      }
+
+      .warehouse-item {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 138, 0, 0.12);
+      }
+
+      .warehouse-item__content {
+          flex: 1;
+          min-width: 0;
+      }
+
+      .warehouse-item__name {
+          font-weight: 600;
+          margin-bottom: 4px;
+      }
+
+      .warehouse-item__meta {
+          font-size: 12px;
+          color: #ffb15d;
+          margin-bottom: 4px;
+      }
+
+      .warehouse-item__desc {
+          font-size: 13px;
+          line-height: 1.45;
+          color: #d1d8e3;
+      }
+
+      .warehouse-item__actions {
+          display: flex;
+          align-items: center;
+      }
+
+      .warehouse-item__take {
+          align-self: center;
+          border: 1px solid rgba(255, 138, 0, 0.28);
+          background: rgba(255, 138, 0, 0.12);
+          color: #ffb15d;
+          border-radius: 999px;
+          padding: 8px 12px;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+      }
+
+      .warehouse-item__take:hover {
+          transform: translateY(-1px);
+          background: rgba(255, 138, 0, 0.2);
+      }
+
+      .warehouse-item__take:disabled {
+          opacity: 0.55;
+          cursor: wait;
+      }
+      .confirm-modal {
+          position: fixed;
+          inset: 0;
+          display: none;
+          z-index: 50;
+      }
+
+      .confirm-modal.is-visible {
+          display: block;
+      }
+
+      .confirm-modal__backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(6px);
+      }
+
+      .confirm-modal__panel {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: min(420px, calc(100vw - 32px));
+          padding: 20px;
+          border-radius: 18px;
+          background: rgba(12, 16, 22, 0.92);
+          border: 1px solid rgba(255, 138, 0, 0.2);
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+          color: #f3f7ff;
+      }
+
+      .confirm-modal__tag {
+          display: inline-block;
+          margin-bottom: 10px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #ffb15d;
+          background: rgba(255, 138, 0, 0.08);
+          border: 1px solid rgba(255, 138, 0, 0.16);
+      }
+
+      .confirm-modal__title {
+          margin: 0 0 10px;
+          font-size: 20px;
+      }
+
+      .confirm-modal__text {
+          margin: 0 0 18px;
+          font-size: 14px;
+          line-height: 1.55;
+          color: #d1d8e3;
+      }
+
+      .confirm-modal__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+      }
+
+      .confirm-modal__btn {
+          border-radius: 999px;
+          padding: 9px 14px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+      }
+
+      .confirm-modal__btn--ghost {
+          background: rgba(255, 255, 255, 0.06);
+          color: #f3f7ff;
+          border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .confirm-modal__btn--primary {
+          background: rgba(255, 138, 0, 0.18);
+          color: #ffb15d;
+          border-color: rgba(255, 138, 0, 0.28);
+      }
+      .user-badge {
+          position: fixed;
+          top: 24px;
+          left: 24px;
+          z-index: 40;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(12, 16, 22, 0.84);
+          border: 1px solid rgba(255, 138, 0, 0.18);
+          color: #f3f7ff;
+          backdrop-filter: blur(16px);
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          font-size: 14px;
+      }
+
+      .user-badge__label {
+          color: #8e9bb0;
+      }
+
+      .user-badge__name {
+          color: #ffb15d;
+          font-weight: 600;
+      }
+
+      .profile-modal {
+          position: fixed;
+          inset: 0;
+          display: none;
+          z-index: 60;
+      }
+
+      .profile-modal.is-visible {
+          display: block;
+      }
+
+      .profile-modal__backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(6px);
+      }
+
+      .profile-modal__panel {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: min(420px, calc(100vw - 32px));
+          padding: 20px;
+          border-radius: 18px;
+          background: rgba(12, 16, 22, 0.94);
+          border: 1px solid rgba(255, 138, 0, 0.2);
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+          color: #f3f7ff;
+      }
+
+      .profile-modal__tag {
+          display: inline-block;
+          margin-bottom: 10px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #ffb15d;
+          background: rgba(255, 138, 0, 0.08);
+          border: 1px solid rgba(255, 138, 0, 0.16);
+      }
+
+      .profile-modal__title {
+          margin: 0 0 10px;
+          font-size: 20px;
+      }
+
+      .profile-modal__text {
+          margin: 0 0 16px;
+          font-size: 14px;
+          line-height: 1.55;
+          color: #d1d8e3;
+      }
+
+      .profile-modal__input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 138, 0, 0.18);
+          background: rgba(255, 255, 255, 0.05);
+          color: #f3f7ff;
+          outline: none;
+          font-size: 14px;
+      }
+
+      .profile-modal__input:focus {
+          border-color: rgba(255, 138, 0, 0.36);
+      }
+
+      .profile-modal__actions {
+          margin-top: 16px;
+          display: flex;
+          justify-content: flex-end;
+      }
+
+      .profile-modal__btn {
+          border-radius: 999px;
+          padding: 10px 14px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+      }
+
+      .profile-modal__btn--primary {
+          background: rgba(255, 138, 0, 0.18);
+          color: #ffb15d;
+          border-color: rgba(255, 138, 0, 0.28);
+      }
+  </style>
 </head>
 
-<body style="margin:0; overflow:hidden;">
-
+<body>
 <div id="scene-container"></div>
 
-<div id="popup"
-     style="
-     display:none;
-       position:absolute;
-       background:white;
-       padding:10px;
-       border-radius:10px;
-       transform: translate(-50%, -120%);
-       pointer-events:none;
-       box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-     ">
+<div id="machine-card" class="machine-card">
+  <button class="machine-card__close" id="machine-card-close" aria-label="Закрыть">×</button>
+  <div class="machine-card__tag">Станок</div>
+  <h3 class="machine-card__title">Выбери модель</h3>
+  <div class="machine-card__status">Статус: —</div>
+  <p class="machine-card__desc">Наведите курсор на модель и нажмите на неё, чтобы открыть карточку.</p>
+  <div class="machine-card__meta">Нажми Esc, чтобы закрыть</div>
+</div>
+<div id="user-badge" class="user-badge">
+  <span class="user-badge__label">Пользователь:</span>
+  <span id="user-badge-name" class="user-badge__name"><%= session[:user_name].presence || "Гость" %></span>
 </div>
 
-<script type="module">
-    import * as THREE from "https://esm.sh/three@0.158.0";
-    import { OrbitControls } from "https://esm.sh/three@0.158.0/examples/jsm/controls/OrbitControls.js";
+<div id="profile-modal" class="profile-modal" aria-hidden="true">
+  <div class="profile-modal__backdrop"></div>
 
-    console.log("SCENE WORKS");
+  <div class="profile-modal__panel" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+    <div class="profile-modal__tag">Регистрация</div>
+    <h3 class="profile-modal__title" id="profile-title">Введите ваше ФИО</h3>
+    <p class="profile-modal__text">Это имя будет отображаться в правом верхнем углу и записываться в журнал выдачи материалов.</p>
 
-    // ===== СЦЕНА =====
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f5);
+    <input id="profile-name" class="profile-modal__input" type="text" placeholder="Иванов Иван Иванович">
 
-    // ===== КАМЕРА =====
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
+    <div class="profile-modal__actions">
+      <button type="button" class="profile-modal__btn profile-modal__btn--primary" id="profile-save">
+        Сохранить
+      </button>
+    </div>
+  </div>
+</div>
+<div id="confirm-modal" class="confirm-modal" aria-hidden="true">
+  <div class="confirm-modal__backdrop"></div>
 
-    camera.position.set(5, 5, 5);
+  <div class="confirm-modal__panel" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="confirm-modal__tag">Склад</div>
+    <h3 class="confirm-modal__title" id="confirm-title">Подтвердите действие</h3>
+    <p class="confirm-modal__text" id="confirm-message"></p>
 
-    // ===== РЕНДЕР =====
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    document.getElementById("scene-container")
-      .appendChild(renderer.domElement);
-
-    // ===== КОНТРОЛЫ =====
-    const controls = new OrbitControls(camera, renderer.domElement);
-
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 2;
-    controls.maxDistance = 20;
-    controls.maxPolarAngle = Math.PI / 2;
-    controls.target.set(0, 0, 0);
-
-    // ===== СВЕТ =====
-    scene.add(new THREE.AmbientLight(0xffffff, 1));
-
-    // ===== ПОЛ =====
-    scene.add(new THREE.GridHelper(10, 10));
-
-    // ===== СТАНКИ =====
-    const machines = [];
-
-    function createMachine(id, x, y, z, color) {
-        const cube = new THREE.Mesh(
-          new THREE.BoxGeometry(),
-          new THREE.MeshBasicMaterial({ color })
-        );
-
-        cube.position.set(x, y, z);
-        cube.userData = { id };
-
-        scene.add(cube);
-        machines.push(cube);
-    }
-
-    createMachine(1, 0, 0, 0, 0xff6600);
-    createMachine(2, 2, 0, 0, 0x00aa88);
-    createMachine(3, -2, 0, 0, 0x3366ff);
-
-    // ===== КЛИК =====
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    window.addEventListener("click", (event) => {
-        const rect = renderer.domElement.getBoundingClientRect();
-
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-
-        const intersects = raycaster.intersectObjects(machines);
-
-        if (intersects.length > 0) {
-            const obj = intersects[0].object;
-            loadMachine(obj.userData.id, obj);
-        } else {
-            hidePopup();
-        }
-    });
-
-    // ===== API =====
-    function loadMachine(id, object) {
-        fetch(`/machines/${id}`)
-          .then(res => res.json())
-          .then(data => showPopup(data, object));
-    }
-
-    // ===== POPUP =====
-    function showPopup(data, object) {
-        const popup = document.getElementById("popup");
-
-        popup.innerHTML = `
-    <h3>${data.name}</h3>
-    <p>${data.description}</p>
-  `;
-
-        const vector = object.position.clone().project(camera);
-
-        popup.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
-        popup.style.top = `${(-vector.y * 0.5 + 0.5) * window.innerHeight}px`;
-
-        popup.style.display = "block";
-    }
-
-    function hidePopup() {
-        document.getElementById("popup").style.display = "none";
-    }
-
-    // ===== RESIZE =====
-    window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // ===== РЕНДЕР =====
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    }
-
-    animate();
-</script>
-
+    <div class="confirm-modal__actions">
+      <button type="button" class="confirm-modal__btn confirm-modal__btn--ghost" id="confirm-cancel">
+        Отмена
+      </button>
+      <button type="button" class="confirm-modal__btn confirm-modal__btn--primary" id="confirm-ok">
+        Взять
+      </button>
+    </div>
+  </div>
+</div>
+<script type="module" src="/scene.js"></script>
 </body>
 </html>
